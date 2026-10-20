@@ -103,7 +103,7 @@ h3 { font-size: 1.2rem !important; margin: 1.8rem 0 .6rem !important; color: var
 [data-testid="stLayoutWrapper"]:has(> [data-testid="stPopover"]) { width: 100% !important; }
 .st-key-topbar .stButton, .st-key-topbar .stButton > *, .st-key-topbar [data-testid="stElementContainer"] { width: auto !important; }
 .stButton button, [data-testid="stFormSubmitButton"] button, [data-testid="stPopover"] button {
-  width: 100%; min-height: 46px; border-radius: 12px; font-weight: 600; font-size: .93rem; letter-spacing: 0;
+  width: 100%; min-height: 42px; border-radius: 12px; font-weight: 600; font-size: .9rem; letter-spacing: 0;
   border: 1px solid var(--line-2); background: var(--card); color: var(--ink);
   box-shadow: 0 1px 1px rgba(28,28,31,.03); transition: background .15s ease, border-color .15s ease, transform .06s ease;
 }
@@ -234,14 +234,24 @@ button [data-testid="stIconMaterial"] { font-size: 1.15rem; }
 .tt-note { margin-top: 10px; padding: 8px 12px; border-radius: 10px; background: var(--tint); border: 1px solid var(--line); color: var(--ink-2); font-size: .85rem; display: flex; gap: 8px; }
 .tt-note .ms { color: var(--faint); }
 .tt-done-by { margin-top: 10px; color: var(--low); font-size: .82rem; font-weight: 600; display: flex; gap: 6px; align-items: center; }
-/* Card buttons: two per row on phones, one row on desktop */
+/* Card buttons: compact, all on one row */
 [class*="st-key-card_"] [data-testid="stHorizontalBlock"] {
-  flex-wrap: wrap !important; flex-direction: row !important; gap: 8px !important;
-  padding-top: 14px; margin-top: 4px; border-top: 1px solid var(--line);
+  flex-wrap: nowrap !important; flex-direction: row !important; gap: 6px !important;
+  padding-top: 12px; margin-top: 2px; border-top: 1px solid var(--line);
 }
-[class*="st-key-card_"] [data-testid="stColumn"] { flex: 1 1 calc(50% - 8px) !important; min-width: calc(50% - 8px) !important; }
-@media (min-width: 640px) {
-  [class*="st-key-card_"] [data-testid="stColumn"] { flex: 1 1 0 !important; min-width: 0 !important; }
+[class*="st-key-card_"] [data-testid="stColumn"] { flex: 1 1 0 !important; min-width: 0 !important; width: auto !important; }
+[class*="st-key-card_"] .stButton button, [class*="st-key-card_"] [data-testid="stPopover"] button {
+  min-height: 36px; height: 36px; padding: 0 8px; border-radius: 10px; font-size: .8rem; gap: 4px;
+}
+[class*="st-key-card_"] button p { font-size: .8rem !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+[class*="st-key-card_"] button [data-testid="stIconMaterial"] { font-size: 1rem; }
+[data-testid="stPopoverButton"] > div > div[aria-hidden="true"] { display: none; }
+/* Narrow phones: text-only card buttons so all four fit on one row */
+@media (max-width: 480px) {
+  [class*="st-key-card_"] button [data-testid="stIconMaterial"],
+  [class*="st-key-card_"] button span:has(> [data-testid="stIconMaterial"]),
+  [class*="st-key-card_"] button p span[role="img"] { display: none !important; }
+  [class*="st-key-card_"] .stButton button, [class*="st-key-card_"] [data-testid="stPopover"] button { padding: 0 4px; }
 }
 
 /* ---------- Summary + empty ---------- */

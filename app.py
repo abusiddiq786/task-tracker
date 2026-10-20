@@ -502,6 +502,30 @@ def complete_task(task: dict, user: str):
         )
 
 
+def reopen_task(task: dict):
+    """Undoes Done. For repeating tasks it also removes the next copy that Done
+    created, but only if nobody has started or changed that copy yet."""
+    done_at = task["done_at"]
+    if not update_fields("Tasks", task["id"], {"status": "To Do", "done_by": "", "done_at": ""}):
+        return
+    if task.get("repeat") not in ("Daily", "Weekly", "Monthly"):
+        return
+    try:
+        done_time = datetime.strptime(done_at, "%Y-%m-%d %H:%M")
+    except ValueError:
+        return
+    tasks = load("Tasks")
+    created = pd.to_datetime(tasks["created_at"], format="%Y-%m-%d %H:%M", errors="coerce")
+    copies = tasks[
+        (tasks["created_by"] == "Auto (repeat)") & (tasks["status"] == "To Do")
+        & (tasks["title"] == task["title"]) & (tasks["area"] == task["area"])
+        & (tasks["assigned_to"] == task["assigned_to"]) & (tasks["repeat"] == task["repeat"])
+        & (created >= done_time) & (created <= done_time + timedelta(minutes=2))
+    ]
+    if not copies.empty:
+        delete_task(copies.iloc[0]["id"])
+
+
 # ---------------------------------------------------------------
 # First-time setup
 # ---------------------------------------------------------------
@@ -610,6 +634,14 @@ def render_task(t: dict, prefix: str, user: str, is_admin: bool):
             parts.append(f'<div class="tt-done-by">{ic("check_circle")}Done by {esc(t["done_by"])} at {esc(t["done_at"])}</div>')
         show_html(*parts)
         if done:
+            c1, c2 = st.columns(2) if is_admin else (st.columns(1)[0], None)
+            if c1.button("Reopen", icon=":material/undo:", key=f"{key}_reopen"):
+                reopen_task(t)
+                st.session_state.flash = f"Reopened: {t['title']}"
+                st.rerun()
+            if c2 is not None:
+                with c2.popover(":material/edit: Edit"):
+                    edit_form(t, key)
             return
 
         # Only make columns for the buttons this card actually shows

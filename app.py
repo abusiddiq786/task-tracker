@@ -7,6 +7,7 @@ inside the app (Team tab) or directly in the Google Sheet.
 """
 
 import calendar
+import html
 import uuid
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -52,7 +53,226 @@ EVERYONE = "Everyone"
 PRIORITY_ICON = {"High": "🔴", "Medium": "🟠", "Low": "🟢"}
 PRIORITY_RANK = {"High": 0, "Medium": 1, "Low": 2}
 
-st.set_page_config(page_title=APP_NAME, page_icon="✅", layout="centered")
+st.set_page_config(page_title=APP_NAME, page_icon="🧸", layout="centered")
+
+
+# ---------------------------------------------------------------
+# Look and feel (colours, fonts, card styles)
+# ---------------------------------------------------------------
+# Fixed colour per business area, in order. New areas get the next colour.
+AREA_COLORS = ["#2F7FD0", "#8A5CF0", "#E0468F", "#0E9A9A", "#E8711A", "#5A63E6", "#5E9A12", "#A86A12"]
+STATUS_LABEL = {"Doing": "In progress", "Waiting": "Waiting", "Done": "Done"}
+
+CSS = """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap');
+
+:root {
+  --brand: #F0605D; --brand-dark: #D44744; --brand-soft: #FFE8E4;
+  --sun: #FFC93C; --sky: #4DA8DA; --mint: #2FA36B;
+  --bg: #FFF8F1; --card: #FFFFFF; --line: #F1E4D8;
+  --ink: #2B2D42; --muted: #6E7184;
+  --high: #E5484D; --medium: #E8930C; --low: #2FA36B;
+  --radius: 18px;
+}
+
+html, body, .stApp, [class*="css"], button, input, textarea, select {
+  font-family: 'Nunito', system-ui, sans-serif !important;
+}
+.stApp { background: var(--bg); color: var(--ink); }
+h1, h2, h3, h4, .tt-brand-name, .tt-kpi-num { font-family: 'Fredoka', 'Nunito', sans-serif !important; }
+[data-testid="stHeader"] { background: transparent; }
+[data-testid="stToolbar"], [data-testid="stDecoration"], [data-testid="stHeaderActionElements"], footer { display: none !important; }
+.block-container { padding: 1.2rem 1rem 4rem !important; max-width: 760px; }
+h3 { font-size: 1.15rem !important; margin: 1.4rem 0 .5rem !important; color: var(--ink); }
+
+/* ---------- Buttons: big and thumb-friendly ---------- */
+.stButton, [data-testid="stFormSubmitButton"], [data-testid="stPopover"],
+[data-testid="stElementContainer"]:has(> .stButton),
+[data-testid="stElementContainer"]:has(> [data-testid="stFormSubmitButton"]),
+[data-testid="stLayoutWrapper"]:has(> [data-testid="stPopover"]) { width: 100% !important; }
+.st-key-topbar .stButton, .st-key-topbar [data-testid="stElementContainer"] { width: auto !important; }
+.stButton > button, [data-testid="stFormSubmitButton"] > button,
+[data-testid="stPopover"] > div > button, [data-testid="stPopover"] button {
+  width: 100%; min-height: 48px; border-radius: 14px; font-weight: 700; font-size: 1rem;
+  border: 1.5px solid var(--line); background: #fff; color: var(--ink);
+  box-shadow: 0 1px 0 rgba(43,45,66,.04); transition: transform .06s ease, box-shadow .15s ease;
+}
+.stButton > button:hover, [data-testid="stFormSubmitButton"] > button:hover,
+[data-testid="stPopover"] button:hover { border-color: var(--brand); color: var(--brand-dark); }
+.stButton > button:active, [data-testid="stFormSubmitButton"] > button:active { transform: scale(.97); }
+button[kind="primary"], button[kind="primaryFormSubmit"],
+[data-testid="stBaseButton-primary"], [data-testid="stBaseButton-primaryFormSubmit"] {
+  background: var(--brand) !important; border-color: var(--brand) !important; color: #fff !important;
+  box-shadow: 0 4px 12px rgba(240,96,93,.28) !important;
+}
+button[kind="primary"]:hover, [data-testid="stBaseButton-primary"]:hover,
+[data-testid="stBaseButton-primaryFormSubmit"]:hover { background: var(--brand-dark) !important; color: #fff !important; }
+
+/* ---------- Inputs ---------- */
+[data-testid="stTextInputRootElement"], [data-testid="stTextAreaRootElement"], [data-testid="stDateInputField"],
+[data-testid="stSelectbox"] [role="group"], [data-testid="stMultiSelect"] [role="group"],
+[data-baseweb="input"], [data-baseweb="select"] > div, [data-baseweb="textarea"] {
+  border: 1.5px solid #E6D9CC !important; border-radius: 12px !important; background: #fff !important;
+}
+[data-testid="stTextInputRootElement"], [data-testid="stDateInputField"],
+[data-testid="stSelectbox"] [role="group"] { min-height: 46px; }
+[data-testid="stTextInputRootElement"]:focus-within, [data-testid="stTextAreaRootElement"]:focus-within,
+[data-testid="stDateInputField"]:focus-within, [data-testid="stSelectbox"] [role="group"]:focus-within,
+[data-testid="stMultiSelect"] [role="group"]:focus-within { border-color: var(--brand) !important; }
+[data-testid="stForm"] {
+  background: var(--card); border: 1px solid var(--line) !important; border-radius: var(--radius);
+  padding: 1.1rem 1rem; box-shadow: 0 6px 20px rgba(43,45,66,.05);
+}
+label, [data-testid="stWidgetLabel"] p { font-weight: 700 !important; color: var(--ink) !important; }
+
+/* ---------- Tabs: scrollable pills ---------- */
+.stTabs [role="tablist"] {
+  gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 4px; margin-bottom: .6rem;
+  background: #fff; border: 1px solid var(--line) !important; border-radius: 999px; box-shadow: none !important;
+}
+.stTabs [role="tablist"]::-webkit-scrollbar { display: none; }
+.stTabs [role="tab"] {
+  height: 42px; padding: 0 14px; border-radius: 999px; white-space: nowrap; flex: none;
+  font-weight: 700; color: var(--muted); background: transparent; border: 0 !important; outline: none;
+  box-shadow: none !important;
+}
+.stTabs [role="tab"] p { font-size: .95rem; font-weight: 700; }
+.stTabs [role="tab"][aria-selected="true"] { background: var(--brand-soft) !important; color: var(--brand-dark) !important; }
+.stTabs [role="tab"]:focus-visible { box-shadow: 0 0 0 2px var(--brand) !important; }
+
+/* ---------- Header ---------- */
+.tt-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.tt-logo {
+  width: 46px; height: 46px; flex: none; border-radius: 14px; display: grid; place-items: center;
+  font-size: 1.5rem; background: linear-gradient(135deg, var(--sun), var(--brand));
+  box-shadow: 0 4px 12px rgba(240,96,93,.25);
+}
+.tt-brand-name { font-size: 1.25rem; font-weight: 600; line-height: 1.1; }
+.tt-brand-sub { color: var(--muted); font-size: .85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-key-topbar [data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; align-items: center; gap: 8px; }
+.st-key-topbar [data-testid="stColumn"] { min-width: 0 !important; }
+.st-key-topbar [data-testid="stColumn"]:not(:first-child) { flex: 0 0 auto !important; width: auto !important; }
+.st-key-topbar .stButton > button { min-height: 44px; padding: 0 12px; font-size: .9rem; }
+
+/* ---------- Login ---------- */
+.tt-hero { text-align: center; padding: 1.5rem 0 1rem; }
+.tt-hero .tt-logo { margin: 0 auto 12px; width: 72px; height: 72px; font-size: 2.3rem; border-radius: 22px; }
+.tt-hero h1 { font-size: 1.9rem !important; margin: 0 !important; padding: 0 !important; }
+.tt-hero p { color: var(--muted); margin: 4px 0 0; }
+
+/* ---------- Task cards ---------- */
+[class*="st-key-card_"] {
+  background: var(--card); border: 1px solid var(--line) !important; border-left: 6px solid var(--medium) !important;
+  border-radius: var(--radius) !important; padding: 14px 14px 12px !important;
+  box-shadow: 0 4px 14px rgba(43,45,66,.05); gap: .6rem !important;
+}
+[class*="st-key-card_high"] { border-left-color: var(--high) !important; }
+[class*="st-key-card_low"] { border-left-color: var(--low) !important; }
+[class*="_done_"] { opacity: .72; border-left-color: #C9CCD6 !important; }
+.tt-title { font-size: 1.08rem; font-weight: 800; line-height: 1.3; margin-bottom: 8px; }
+.tt-title.done { text-decoration: line-through; color: var(--muted); }
+.tt-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.tt-tag {
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px;
+  font-size: .78rem; font-weight: 700; color: var(--ink); background: #F3F1F7; white-space: nowrap;
+}
+.tt-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--muted)); }
+.tt-tag.area { background: color-mix(in srgb, var(--c) 13%, #fff); }
+.tt-tag.prio-High { background: #FDE7E8; color: #B4232A; }
+.tt-tag.prio-Medium { background: #FFF1D6; color: #8F5800; }
+.tt-tag.prio-Low { background: #E2F5EA; color: #1C6E46; }
+.tt-tag.st-Doing { background: #E3F0FB; color: #1F5F92; }
+.tt-tag.st-Done { background: #E2F5EA; color: #1C6E46; }
+.tt-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--muted); font-size: .88rem; font-weight: 600; }
+.tt-meta .late { color: var(--high); font-weight: 800; }
+.tt-meta .today { color: var(--brand-dark); font-weight: 800; }
+.tt-alert { margin-top: 8px; padding: 7px 12px; border-radius: 12px; font-size: .88rem; font-weight: 700; }
+.tt-alert.red { background: #FDE7E8; color: #B4232A; }
+.tt-alert.amber { background: #FFF1D6; color: #8F5800; }
+.tt-note { margin-top: 8px; padding: 7px 12px; border-radius: 12px; background: #F7F4EF; color: var(--ink); font-size: .88rem; }
+.tt-done-by { margin-top: 8px; color: var(--mint); font-size: .85rem; font-weight: 700; }
+/* Keep card buttons side by side (2 per row) on phones instead of one long stack */
+[class*="st-key-card_"] [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; flex-direction: row !important; gap: 8px !important; }
+[class*="st-key-card_"] [data-testid="stColumn"] { flex: 1 1 calc(50% - 8px) !important; min-width: calc(50% - 8px) !important; }
+@media (min-width: 640px) {
+  [class*="st-key-card_"] [data-testid="stColumn"] { flex: 1 1 0 !important; min-width: 0 !important; }
+}
+
+/* ---------- Summary pills ---------- */
+.tt-summary { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 12px; }
+.tt-pill { padding: 6px 12px; border-radius: 999px; background: #fff; border: 1px solid var(--line); font-weight: 700; font-size: .88rem; }
+.tt-pill.red { background: #FDE7E8; border-color: #F8C9CB; color: #B4232A; }
+.tt-empty { text-align: center; padding: 2rem 1rem; background: #fff; border: 1.5px dashed var(--line); border-radius: var(--radius); color: var(--muted); font-weight: 600; }
+.tt-empty .big { font-size: 2rem; display: block; margin-bottom: 6px; }
+
+/* ---------- Dashboard ---------- */
+.tt-kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 4px 0 6px; }
+@media (min-width: 640px) { .tt-kpis { grid-template-columns: repeat(4, 1fr); } }
+.tt-kpi { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; position: relative; overflow: hidden; }
+.tt-kpi::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 5px; background: var(--c); }
+.tt-kpi-label { color: var(--muted); font-size: .82rem; font-weight: 700; }
+.tt-kpi-num { font-size: 2.1rem; font-weight: 600; line-height: 1.1; margin-top: 4px; color: var(--ink); }
+.tt-kpi.alert { background: #FFF4F4; border-color: #F8C9CB; }
+.tt-kpi.alert .tt-kpi-num { color: #B4232A; }
+.tt-panel { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
+.tt-bar-row { display: grid; grid-template-columns: minmax(90px, 38%) 1fr 28px; align-items: center; gap: 10px; padding: 5px 0; }
+.tt-bar-label { font-size: .88rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tt-bar-track { height: 14px; border-radius: 4px; }
+.tt-bar { height: 100%; border-radius: 4px; background: var(--brand); min-width: 4px; }
+.tt-bar-row:hover .tt-bar { background: var(--brand-dark); }
+.tt-bar-val { text-align: right; font-weight: 800; font-size: .9rem; color: var(--ink); }
+.tt-table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.tt-table, .tt-table th, .tt-table td, .tt-table tr { border: 0 !important; background: transparent !important; }
+.tt-table th { text-align: right; color: var(--muted); font-size: .78rem; font-weight: 700; padding: 0 6px 8px; }
+.tt-table th:first-child, .tt-table td:first-child { text-align: left; }
+.tt-table td { text-align: right; padding: 9px 6px; border-top: 1px solid var(--line) !important; font-weight: 700; }
+.tt-table td.late { color: #B4232A; }
+.tt-table td.zero { color: #B9BCC8; font-weight: 600; }
+.tt-list-item { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
+.tt-list-item:first-child { border-top: 0; }
+.tt-list-main { font-weight: 700; font-size: .92rem; }
+.tt-list-sub { color: var(--muted); font-size: .8rem; font-weight: 600; }
+.tt-list-side { white-space: nowrap; font-weight: 800; font-size: .85rem; }
+.tt-list-side.late { color: #B4232A; }
+.tt-list-side.ok { color: var(--mint); }
+
+/* Radios as chunky chips (bigger tap area) */
+[data-testid="stRadioGroup"] > div { gap: 6px !important; flex-wrap: wrap; }
+[data-testid="stRadioOption"] {
+  background: #fff; border: 1.5px solid var(--line); border-radius: 999px; padding: 8px 14px 8px 10px !important;
+  margin: 0 !important; min-height: 40px;
+}
+[data-testid="stRadioOption"]:has(input:checked), [data-testid="stRadioOption"][data-selected] {
+  border-color: var(--brand); background: var(--brand-soft);
+}
+[data-testid="stAlert"] { border-radius: 14px; }
+</style>
+"""
+st.markdown(CSS, unsafe_allow_html=True)
+
+
+def esc(text) -> str:
+    return html.escape(str(text or ""))
+
+
+def area_color(area: str) -> str:
+    areas = DEFAULT_AREAS
+    try:
+        areas = area_list()
+    except Exception:
+        pass
+    i = areas.index(area) if area in areas else sum(map(ord, area))
+    return AREA_COLORS[i % len(AREA_COLORS)]
+
+
+def show_html(*parts: str):
+    """Renders our own HTML. Joined without newlines so Markdown leaves it alone."""
+    st.markdown("".join(parts), unsafe_allow_html=True)
+
+
+def empty_state(icon: str, msg: str):
+    show_html(f'<div class="tt-empty"><span class="big">{icon}</span>{esc(msg)}</div>')
 
 
 # ---------------------------------------------------------------
@@ -295,49 +515,69 @@ def render_task(t: dict, prefix: str, user: str, is_admin: bool):
     key = f"{prefix}_{tid}"
     due = parse_date(t["due_date"])
     status = t["status"]
+    prio = t["priority"] if t["priority"] in PRIORITY_RANK else "Medium"
+    done = status == "Done"
+    late = not done and due and due < today()
 
-    with st.container(border=True):
-        icon = PRIORITY_ICON.get(t["priority"], "⚪")
-        title = f"~~{t['title']}~~" if status == "Done" else t["title"]
-        st.markdown(f"{icon} **{title}**")
-
-        info = [f"📁 {t['area']}", f"👤 {t['assigned_to']}", f"📅 {nice_date(due)}"]
+    with st.container(key=f"card_{prio.lower()}_{'done' if done else 'open'}_{key}"):
+        tags = [f'<span class="tt-tag prio-{prio}">{PRIORITY_ICON[prio]} {prio}</span>']
+        if t["area"]:
+            tags.append(f'<span class="tt-tag area" style="--c:{area_color(t["area"])}">'
+                        f'<span class="tt-dot"></span>{esc(t["area"])}</span>')
         if t["repeat"] in ("Daily", "Weekly", "Monthly"):
-            info.append(f"🔁 {t['repeat']}")
-        st.caption("   ".join(info))
+            tags.append(f'<span class="tt-tag">🔁 {t["repeat"]}</span>')
+        if status in ("Doing", "Done"):
+            tags.append(f'<span class="tt-tag st-{status}">{STATUS_LABEL[status]}</span>')
 
-        if status != "Done" and due and due < today():
+        due_cls = "late" if late else ("today" if due == today() and not done else "")
+        parts = [
+            f'<div class="tt-title{" done" if done else ""}">{esc(t["title"])}</div>',
+            f'<div class="tt-tags">{"".join(tags)}</div>',
+            f'<div class="tt-meta"><span>👤 {esc(t["assigned_to"] or "Unassigned")}</span>'
+            f'<span class="{due_cls}">📅 {nice_date(due)}</span></div>',
+        ]
+        if late:
             days = (today() - due).days
-            st.markdown(f":red[**Overdue by {days} day{'s' if days > 1 else ''}**]")
-        if status == "Doing":
-            st.markdown(":blue[In progress]")
+            parts.append(f'<div class="tt-alert red">⚠️ Overdue by {days} day{"s" if days > 1 else ""}</div>')
         if status == "Waiting":
             since = parse_date(t["waiting_since"])
             days = (today() - since).days if since else 0
-            st.markdown(f":orange[⏳ Waiting on {t['waiting_on'] or 'someone'} for {days} day{'s' if days != 1 else ''}]")
+            parts.append(f'<div class="tt-alert amber">⏳ Waiting on {esc(t["waiting_on"] or "someone")} '
+                         f'for {days} day{"s" if days != 1 else ""}</div>')
         if t["notes"]:
-            st.caption(f"📝 {t['notes']}")
-        if status == "Done":
-            st.caption(f"✅ Done by {t['done_by']} at {t['done_at']}")
+            parts.append(f'<div class="tt-note">📝 {esc(t["notes"])}</div>')
+        if done:
+            parts.append(f'<div class="tt-done-by">✅ Done by {esc(t["done_by"])} at {esc(t["done_at"])}</div>')
+        show_html(*parts)
+        if done:
             return
 
-        c1, c2, c3, c4 = st.columns(4)
-        if c1.button("✅ Done", key=f"{key}_done", type="primary"):
+        # Only make columns for the buttons this card actually shows
+        actions = ["done"]
+        if status in ("To Do", "Waiting"):
+            actions.append("start")
+        if status != "Waiting":
+            actions.append("wait")
+        if is_admin:
+            actions.append("edit")
+        cols = dict(zip(actions, st.columns(len(actions))))
+
+        if cols["done"].button("✅ Done", key=f"{key}_done", type="primary"):
             complete_task(t, user)
             st.session_state.flash = f"Done: {t['title']}"
             st.rerun()
 
         if status == "To Do":
-            if c2.button("▶️ Start", key=f"{key}_start"):
+            if cols["start"].button("▶️ Start", key=f"{key}_start"):
                 update_fields("Tasks", tid, {"status": "Doing"})
                 st.rerun()
         elif status == "Waiting":
-            if c2.button("▶️ Resume", key=f"{key}_resume"):
+            if cols["start"].button("▶️ Resume", key=f"{key}_resume"):
                 update_fields("Tasks", tid, {"status": "Doing", "waiting_on": "", "waiting_since": ""})
                 st.rerun()
 
-        if status != "Waiting":
-            with c3.popover("⏳ Waiting"):
+        if "wait" in cols:
+            with cols["wait"].popover("⏳ Waiting"):
                 who = st.text_input("Waiting on whom or what?", key=f"{key}_who",
                                     placeholder="e.g. Ravi supplier, fabric delivery")
                 if st.button("Save", key=f"{key}_wait_save"):
@@ -345,8 +585,8 @@ def render_task(t: dict, prefix: str, user: str, is_admin: bool):
                                                  "waiting_since": today().isoformat()})
                     st.rerun()
 
-        if is_admin:
-            with c4.popover("✏️ Edit"):
+        if "edit" in cols:
+            with cols["edit"].popover("✏️ Edit"):
                 edit_form(t, key)
 
 
@@ -378,7 +618,7 @@ def edit_form(t: dict, key: str):
 
 def render_list(df: pd.DataFrame, prefix: str, user: str, is_admin: bool, empty_msg: str, limit: int = 100):
     if df.empty:
-        st.info(empty_msg)
+        empty_state("🎈", empty_msg)
         return
     if len(df) > limit:
         st.caption(f"Showing first {limit} of {len(df)} tasks. Use the filters to narrow down.")
@@ -390,8 +630,8 @@ def render_list(df: pd.DataFrame, prefix: str, user: str, is_admin: bool, empty_
 # Screens
 # ---------------------------------------------------------------
 def login_screen():
-    st.title(f"✅ {APP_NAME}")
-    st.caption(BUSINESS_NAME)
+    show_html(f'<div class="tt-hero"><div class="tt-logo">🧸</div>'
+              f'<h1>{esc(APP_NAME)}</h1><p>{esc(BUSINESS_NAME)}</p></div>')
     people = active_people()
     if not people:
         st.error("No active users found. Open the Google Sheet, go to the Users tab and add one.")
@@ -418,8 +658,10 @@ def today_tab(tasks, user, is_admin):
     if scope == "My tasks":
         df = for_person(df, user)
     overdue = (df["_due"] < today()).sum()
-    st.caption(f"{len(df)} task{'s' if len(df) != 1 else ''} for today"
-               + (f", {overdue} overdue" if overdue else ""))
+    pills = [f'<span class="tt-pill">📅 {len(df)} task{"s" if len(df) != 1 else ""} for today</span>']
+    if overdue:
+        pills.append(f'<span class="tt-pill red">⚠️ {overdue} overdue</span>')
+    show_html(f'<div class="tt-summary">{"".join(pills)}</div>')
     render_list(df, "today", user, is_admin, "Nothing due today. Check the All tab for upcoming work.")
 
 
@@ -485,18 +727,31 @@ def dashboard_tab(tasks):
     done_today = tasks[(tasks["status"] == "Done") & tasks["done_at"].str.startswith(t_str)]
     waiting = open_df[open_df["status"] == "Waiting"]
 
-    c1, c2 = st.columns(2)
-    c1.metric("Open tasks", len(open_df))
-    c2.metric("Overdue", len(overdue))
-    c3, c4 = st.columns(2)
-    c3.metric("Done today", len(done_today))
-    c4.metric("Waiting", len(waiting))
+    kpis = [
+        ("Open tasks", len(open_df), "var(--sky)", False),
+        ("Overdue", len(overdue), "var(--high)", len(overdue) > 0),
+        ("Done today", len(done_today), "var(--mint)", False),
+        ("Waiting", len(waiting), "var(--sun)", False),
+    ]
+    show_html('<div class="tt-kpis">', *[
+        f'<div class="tt-kpi{" alert" if alert else ""}" style="--c:{c}">'
+        f'<div class="tt-kpi-label">{label}</div><div class="tt-kpi-num">{n}</div></div>'
+        for label, n, c, alert in kpis
+    ], '</div>')
 
     st.subheader("Open tasks by area")
     if open_df.empty:
-        st.info("No open tasks.")
+        empty_state("🎉", "No open tasks.")
     else:
-        st.bar_chart(open_df.groupby("area").size().rename("Open tasks"))
+        counts = open_df.groupby("area").size().sort_values(ascending=False)
+        top = counts.max()
+        show_html('<div class="tt-panel">', *[
+            f'<div class="tt-bar-row" title="{esc(area)}: {n} open task{"s" if n != 1 else ""}">'
+            f'<div class="tt-bar-label">{esc(area or "No area")}</div>'
+            f'<div class="tt-bar-track"><div class="tt-bar" style="width:{n / top * 100:.0f}%"></div></div>'
+            f'<div class="tt-bar-val">{n}</div></div>'
+            for area, n in counts.items()
+        ], '</div>')
 
     st.subheader("Team today")
     team = pd.DataFrame({
@@ -505,31 +760,41 @@ def dashboard_tab(tasks):
         "Done today": done_today.groupby("done_by").size(),
     }).fillna(0).astype(int)
     if team.empty:
-        st.info("No activity yet.")
+        empty_state("🌱", "No activity yet.")
     else:
-        st.dataframe(team.sort_values("Overdue", ascending=False))
+        rows = []
+        for person, r in team.sort_values("Overdue", ascending=False).iterrows():
+            cells = []
+            for col in ("Open", "Overdue", "Done today"):
+                cls = "zero" if r[col] == 0 else ("late" if col == "Overdue" else "")
+                cells.append(f'<td class="{cls}">{r[col]}</td>')
+            rows.append(f'<tr><td>{esc(person or "Unassigned")}</td>{"".join(cells)}</tr>')
+        show_html('<div class="tt-panel"><table class="tt-table"><thead><tr><th>Person</th><th>Open</th>'
+                  '<th>Overdue</th><th>Done today</th></tr></thead><tbody>', *rows, '</tbody></table></div>')
 
     st.subheader("Completed today")
     if done_today.empty:
-        st.caption("Nothing completed yet today.")
+        empty_state("☕", "Nothing completed yet today.")
     else:
-        st.dataframe(
-            done_today[["title", "area", "done_by", "done_at"]].rename(columns={
-                "title": "Task", "area": "Area", "done_by": "Done by", "done_at": "Time"}),
-            hide_index=True,
-        )
+        show_html('<div class="tt-panel">', *[
+            f'<div class="tt-list-item"><div><div class="tt-list-main">{esc(r["title"])}</div>'
+            f'<div class="tt-list-sub">{esc(r["area"])} · {esc(r["done_by"])}</div></div>'
+            f'<div class="tt-list-side ok">✓ {esc(r["done_at"][-5:])}</div></div>'
+            for _, r in done_today.iterrows()
+        ], '</div>')
 
     st.subheader("Overdue list")
     if overdue.empty:
-        st.caption("No overdue tasks.")
+        empty_state("🌈", "No overdue tasks.")
     else:
         view = overdue.copy()
-        view["Days late"] = view["_due"].apply(lambda d: (today() - d).days)
-        st.dataframe(
-            view[["title", "area", "assigned_to", "Days late"]].rename(columns={
-                "title": "Task", "area": "Area", "assigned_to": "Person"}),
-            hide_index=True,
-        )
+        view["late"] = view["_due"].apply(lambda d: (today() - d).days)
+        show_html('<div class="tt-panel">', *[
+            f'<div class="tt-list-item"><div><div class="tt-list-main">{esc(r["title"])}</div>'
+            f'<div class="tt-list-sub">{esc(r["area"])} · {esc(r["assigned_to"])}</div></div>'
+            f'<div class="tt-list-side late">{r["late"]}d late</div></div>'
+            for _, r in view.sort_values("late", ascending=False).iterrows()
+        ], '</div>')
 
 
 def team_tab():
@@ -604,14 +869,19 @@ def main():
     user = st.session_state.user
     is_admin = st.session_state.get("role") == "admin"
 
-    h1, h2, h3 = st.columns([3, 1, 1])
-    h1.markdown(f"### ✅ Hi, {user}")
-    if h2.button("🔄 Refresh"):
-        refresh()
-        st.rerun()
-    if h3.button("Log out"):
-        st.session_state.clear()
-        st.rerun()
+    with st.container(key="topbar"):
+        h1, h2, h3 = st.columns([4, 1, 1])
+        h1.markdown(
+            f'<div class="tt-brand"><div class="tt-logo">🧸</div><div style="min-width:0">'
+            f'<div class="tt-brand-name">Hi, {esc(user)}</div>'
+            f'<div class="tt-brand-sub">{today().strftime("%a %d %b")} · {esc(BUSINESS_NAME)}</div>'
+            f'</div></div>', unsafe_allow_html=True)
+        if h2.button("🔄", key="refresh_btn", help="Refresh"):
+            refresh()
+            st.rerun()
+        if h3.button("Log out", key="logout_btn"):
+            st.session_state.clear()
+            st.rerun()
 
     if st.session_state.get("flash"):
         st.success(st.session_state.pop("flash"))

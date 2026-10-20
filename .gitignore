@@ -1,0 +1,11 @@
+# Secrets - never commit
+.streamlit/secrets.toml
+secrets.toml
+*.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store

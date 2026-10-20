@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"></head>
+<body>
+<script>
+  // Tiny Streamlit component: keeps the signed login token in this phone's browser storage.
+  const KEY = "tt_login";
+
+  function send(type, data) {
+    window.parent.postMessage(Object.assign({ isStreamlitMessage: true, type: type }, data), "*");
+  }
+
+  window.addEventListener("message", function (event) {
+    if (!event.data || event.data.type !== "streamlit:render") return;
+    const args = event.data.args || {};
+    let value = "";
+    try {
+      if (args.action === "save") localStorage.setItem(KEY, args.token || "");
+      if (args.action === "clear") localStorage.removeItem(KEY);
+      value = localStorage.getItem(KEY) || "";
+    } catch (err) {
+      value = "";
+    }
+    if (args.action === "read") send("streamlit:setComponentValue", { value: value, dataType: "json" });
+  });
+
+  send("streamlit:componentReady", { apiVersion: 1 });
+  send("streamlit:setFrameHeight", { height: 0 });
+</script>
+</body>
+</html>

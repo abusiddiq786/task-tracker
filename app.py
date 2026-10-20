@@ -12,14 +12,14 @@ import hmac
 import html
 import time
 import uuid
-from urllib.parse import quote, unquote
+from pathlib import Path
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import gspread
 import pandas as pd
 import streamlit as st
-from streamlit.components.v1 import html as run_js
+import streamlit.components.v1 as components
 
 # ---------------------------------------------------------------
 # Basic settings (safe to change the text in quotes if you want)
@@ -300,7 +300,7 @@ button [data-testid="stIconMaterial"] { font-size: 1.15rem; }
 .tt-list-side.ok { color: var(--low); background: var(--low-soft); }
 
 [data-testid="stAlert"] { border-radius: 12px; }
-.st-key-cookiejar { display: none !important; }
+[class*="st-key-remember_box_"] { display: none !important; }
 [data-testid="stPopoverBody"] { border-radius: 16px !important; border: 1px solid var(--line) !important; box-shadow: 0 20px 40px -16px rgba(28,28,31,.25) !important; }
 </style>
 """
@@ -687,11 +687,19 @@ def render_list(df: pd.DataFrame, prefix: str, user: str, is_admin: bool, empty_
 
 
 # ---------------------------------------------------------------
-# Stay logged in (signed cookie, so phones don't ask for the PIN
-# every time you switch apps). The PIN check itself is unchanged.
+# Stay logged in (signed token kept in the phone's browser storage, so
+# switching apps doesn't ask for the PIN again). The PIN check is unchanged.
 # ---------------------------------------------------------------
-REMEMBER_COOKIE = "tt_login"
 REMEMBER_DAYS = 30
+_remember = components.declare_component(
+    "remember", path=str(Path(__file__).parent / "remember_component"))
+
+
+def remember(action: str, token: str = ""):
+    """action: 'read' returns the saved token ('' if none, None until the browser answers),
+    'save' stores a token, 'clear' removes it."""
+    with st.container(key=f"remember_box_{action}"):
+        return _remember(action=action, token=token, key=f"remember_{action}", default=None)
 
 
 def _signature(name: str, pin: str, expires: int) -> str:
@@ -701,17 +709,14 @@ def _signature(name: str, pin: str, expires: int) -> str:
 
 def remember_token(name: str, pin: str) -> str:
     expires = int(time.time()) + REMEMBER_DAYS * 86400
-    return quote(f"{name}|{expires}|{_signature(name, pin, expires)}")
+    return f"{name}|{expires}|{_signature(name, pin, expires)}"
 
 
-def restore_login():
-    """Logs the person back in from their cookie if it is still valid.
+def restore_login(token: str):
+    """Logs the person back in if their saved token is still valid.
     Changing someone's PIN or setting access to 'no' signs them out everywhere."""
-    if st.session_state.get("logged_out"):
-        return
-    token = unquote(st.context.cookies.get(REMEMBER_COOKIE, ""))
     try:
-        name, expires, sig = token.rsplit("|", 2)
+        name, expires, sig = str(token).rsplit("|", 2)
         expires = int(expires)
     except ValueError:
         return
@@ -724,16 +729,6 @@ def restore_login():
     if hmac.compare_digest(sig, _signature(name, match.iloc[0]["pin"].strip(), expires)):
         st.session_state.user = name
         st.session_state.role = match.iloc[0]["role"].strip().lower()
-
-
-def write_cookie(value: str, max_age: int):
-    with st.container(key="cookiejar"):
-        run_js(
-            "<script>const d = window.parent.document;"
-            f"d.cookie = '{REMEMBER_COOKIE}={value}; max-age={max_age}; path=/; SameSite=Lax'"
-            " + (d.location.protocol === 'https:' ? '; Secure' : '');</script>",
-            height=0,
-        )
 
 
 # ---------------------------------------------------------------
@@ -756,7 +751,7 @@ def login_screen():
             if not match.empty and match.iloc[0]["pin"].strip() == pin.strip():
                 st.session_state.user = name
                 st.session_state.role = match.iloc[0]["role"].strip().lower()
-                st.session_state.save_cookie = remember_token(name, match.iloc[0]["pin"].strip())
+                st.session_state.save_login = remember_token(name, match.iloc[0]["pin"].strip())
                 st.rerun()
             else:
                 st.error("Wrong PIN. Ask the owner if you forgot it.")
@@ -975,16 +970,18 @@ def main():
         st.caption(f"Technical detail: {e}")
         st.stop()
 
+    if "user" not in st.session_state and not st.session_state.get("logged_out"):
+        token = remember("read")
+        if token:
+            restore_login(token)
     if "user" not in st.session_state:
-        restore_login()
-    if "user" not in st.session_state:
-        if st.session_state.pop("clear_cookie", False):
-            write_cookie("", 0)
+        if st.session_state.get("logged_out"):
+            remember("clear")
         login_screen()
         st.stop()
 
-    if "save_cookie" in st.session_state:
-        write_cookie(st.session_state.pop("save_cookie"), REMEMBER_DAYS * 86400)
+    if "save_login" in st.session_state:
+        remember("save", st.session_state.save_login)
 
     user = st.session_state.user
     is_admin = st.session_state.get("role") == "admin"
@@ -1002,7 +999,6 @@ def main():
         if h3.button("Log out", key="logout_btn"):
             st.session_state.clear()
             st.session_state.logged_out = True
-            st.session_state.clear_cookie = True
             st.rerun()
 
     if st.session_state.get("flash"):

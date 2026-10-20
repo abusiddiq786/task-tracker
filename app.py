@@ -50,203 +50,242 @@ HEADERS = {"Tasks": TASK_COLS, "Users": USER_COLS, "Areas": AREA_COLS}
 REPEATS = ["None", "Daily", "Weekly", "Monthly"]
 PRIORITIES = ["High", "Medium", "Low"]
 EVERYONE = "Everyone"
-PRIORITY_ICON = {"High": "🔴", "Medium": "🟠", "Low": "🟢"}
 PRIORITY_RANK = {"High": 0, "Medium": 1, "Low": 2}
 
-st.set_page_config(page_title=APP_NAME, page_icon="🧸", layout="centered")
+st.set_page_config(page_title=APP_NAME, page_icon=":material/checklist:", layout="centered")
 
 
 # ---------------------------------------------------------------
 # Look and feel (colours, fonts, card styles)
 # ---------------------------------------------------------------
 # Fixed colour per business area, in order. New areas get the next colour.
-AREA_COLORS = ["#2F7FD0", "#8A5CF0", "#E0468F", "#0E9A9A", "#E8711A", "#5A63E6", "#5E9A12", "#A86A12"]
+AREA_COLORS = ["#5B7DB1", "#8C6BB1", "#B5657F", "#4E918C", "#C0794A", "#6A70B8", "#7C9550", "#A08350"]
 STATUS_LABEL = {"Doing": "In progress", "Waiting": "Waiting", "Done": "Done"}
+MONOGRAM = "F&amp;K"
 
 CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..24,400,0,0&display=block');
 
 :root {
-  --brand: #F0605D; --brand-dark: #D44744; --brand-soft: #FFE8E4;
-  --sun: #FFC93C; --sky: #4DA8DA; --mint: #2FA36B;
-  --bg: #FFF8F1; --card: #FFFFFF; --line: #F1E4D8;
-  --ink: #2B2D42; --muted: #6E7184;
-  --high: #E5484D; --medium: #E8930C; --low: #2FA36B;
-  --radius: 18px;
+  --ink: #1C1C1F; --ink-2: #3A3A40; --muted: #7B776F; --faint: #A9A49A;
+  --bg: #F6F3EE; --card: #FFFFFF; --line: #E8E3DA; --line-2: #DDD6CA; --tint: #FAF8F4;
+  --gold: #B08D57; --gold-soft: #F4EDE1;
+  --high: #B4543D; --high-soft: #F8EBE7;
+  --medium: #A9822F; --medium-soft: #F7F0E1;
+  --low: #5D8068; --low-soft: #EAF1EC;
+  --blue: #4F6F96; --blue-soft: #EAF0F6;
+  --radius: 16px;
+  --shadow: 0 1px 2px rgba(28,28,31,.04), 0 8px 24px -12px rgba(28,28,31,.10);
 }
 
-html, body, .stApp, [class*="css"], button, input, textarea, select {
-  font-family: 'Nunito', system-ui, sans-serif !important;
+html, body, .stApp, [class*="css"], button, input, textarea, select, p, label {
+  font-family: 'Manrope', system-ui, sans-serif !important; letter-spacing: -.005em;
 }
 .stApp { background: var(--bg); color: var(--ink); }
-h1, h2, h3, h4, .tt-brand-name, .tt-kpi-num { font-family: 'Fredoka', 'Nunito', sans-serif !important; }
+h1, h2, h3, .tt-serif { font-family: 'Fraunces', Georgia, serif !important; font-weight: 500 !important; letter-spacing: -.01em; }
+.ms {
+  font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; line-height: 1;
+  font-size: 1.05em; display: inline-block; vertical-align: -0.18em; -webkit-font-feature-settings: 'liga'; font-feature-settings: 'liga';
+}
 [data-testid="stHeader"] { background: transparent; }
 [data-testid="stToolbar"], [data-testid="stDecoration"], [data-testid="stHeaderActionElements"], footer { display: none !important; }
-.block-container { padding: 1.2rem 1rem 4rem !important; max-width: 760px; }
-h3 { font-size: 1.15rem !important; margin: 1.4rem 0 .5rem !important; color: var(--ink); }
+.block-container { padding: 1.4rem 1rem 4rem !important; max-width: 760px; }
+h3 { font-size: 1.2rem !important; margin: 1.8rem 0 .6rem !important; color: var(--ink); }
+.tt-eyebrow { font-size: .7rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
 
-/* ---------- Buttons: big and thumb-friendly ---------- */
+/* ---------- Buttons ---------- */
 .stButton, [data-testid="stFormSubmitButton"], [data-testid="stPopover"],
-[data-testid="stElementContainer"]:has(> .stButton),
-[data-testid="stElementContainer"]:has(> [data-testid="stFormSubmitButton"]),
+[data-testid="stElementContainer"]:has(.stButton),
+[data-testid="stElementContainer"]:has([data-testid="stFormSubmitButton"]),
+[data-testid="stFormSubmitButton"] > *, .stButton > *,
 [data-testid="stLayoutWrapper"]:has(> [data-testid="stPopover"]) { width: 100% !important; }
-.st-key-topbar .stButton, .st-key-topbar [data-testid="stElementContainer"] { width: auto !important; }
-.stButton > button, [data-testid="stFormSubmitButton"] > button,
-[data-testid="stPopover"] > div > button, [data-testid="stPopover"] button {
-  width: 100%; min-height: 48px; border-radius: 14px; font-weight: 700; font-size: 1rem;
-  border: 1.5px solid var(--line); background: #fff; color: var(--ink);
-  box-shadow: 0 1px 0 rgba(43,45,66,.04); transition: transform .06s ease, box-shadow .15s ease;
+.st-key-topbar .stButton, .st-key-topbar .stButton > *, .st-key-topbar [data-testid="stElementContainer"] { width: auto !important; }
+.stButton button, [data-testid="stFormSubmitButton"] button, [data-testid="stPopover"] button {
+  width: 100%; min-height: 46px; border-radius: 12px; font-weight: 600; font-size: .93rem; letter-spacing: 0;
+  border: 1px solid var(--line-2); background: var(--card); color: var(--ink);
+  box-shadow: 0 1px 1px rgba(28,28,31,.03); transition: background .15s ease, border-color .15s ease, transform .06s ease;
 }
-.stButton > button:hover, [data-testid="stFormSubmitButton"] > button:hover,
-[data-testid="stPopover"] button:hover { border-color: var(--brand); color: var(--brand-dark); }
-.stButton > button:active, [data-testid="stFormSubmitButton"] > button:active { transform: scale(.97); }
-button[kind="primary"], button[kind="primaryFormSubmit"],
+.stButton button:hover, [data-testid="stFormSubmitButton"] button:hover, [data-testid="stPopover"] button:hover {
+  border-color: var(--ink); color: var(--ink); background: var(--tint);
+}
+.stButton button:active, [data-testid="stFormSubmitButton"] button:active { transform: scale(.98); }
+.stButton button:focus-visible, [data-testid="stPopover"] button:focus-visible { box-shadow: 0 0 0 3px rgba(176,141,87,.35) !important; }
 [data-testid="stBaseButton-primary"], [data-testid="stBaseButton-primaryFormSubmit"] {
-  background: var(--brand) !important; border-color: var(--brand) !important; color: #fff !important;
-  box-shadow: 0 4px 12px rgba(240,96,93,.28) !important;
+  background: var(--ink) !important; border-color: var(--ink) !important; color: #fff !important;
+  box-shadow: 0 6px 16px -8px rgba(28,28,31,.55) !important;
 }
-button[kind="primary"]:hover, [data-testid="stBaseButton-primary"]:hover,
-[data-testid="stBaseButton-primaryFormSubmit"]:hover { background: var(--brand-dark) !important; color: #fff !important; }
+[data-testid="stBaseButton-primary"]:hover, [data-testid="stBaseButton-primaryFormSubmit"]:hover {
+  background: #000 !important; color: #fff !important;
+}
+[data-testid="stBaseButton-primary"] p, [data-testid="stBaseButton-primaryFormSubmit"] p { color: #fff !important; }
+button [data-testid="stIconMaterial"] { font-size: 1.15rem; }
 
 /* ---------- Inputs ---------- */
 [data-testid="stTextInputRootElement"], [data-testid="stTextAreaRootElement"], [data-testid="stDateInputField"],
-[data-testid="stSelectbox"] [role="group"], [data-testid="stMultiSelect"] [role="group"],
-[data-baseweb="input"], [data-baseweb="select"] > div, [data-baseweb="textarea"] {
-  border: 1.5px solid #E6D9CC !important; border-radius: 12px !important; background: #fff !important;
+[data-testid="stSelectbox"] [role="group"], [data-testid="stMultiSelect"] [role="group"] {
+  border: 1px solid var(--line-2) !important; border-radius: 12px !important; background: var(--card) !important;
+  transition: border-color .15s ease, box-shadow .15s ease;
 }
-[data-testid="stTextInputRootElement"], [data-testid="stDateInputField"],
-[data-testid="stSelectbox"] [role="group"] { min-height: 46px; }
+[data-testid="stTextInputRootElement"], [data-testid="stDateInputField"], [data-testid="stSelectbox"] [role="group"] { min-height: 46px; }
 [data-testid="stTextInputRootElement"]:focus-within, [data-testid="stTextAreaRootElement"]:focus-within,
 [data-testid="stDateInputField"]:focus-within, [data-testid="stSelectbox"] [role="group"]:focus-within,
-[data-testid="stMultiSelect"] [role="group"]:focus-within { border-color: var(--brand) !important; }
-[data-testid="stForm"] {
-  background: var(--card); border: 1px solid var(--line) !important; border-radius: var(--radius);
-  padding: 1.1rem 1rem; box-shadow: 0 6px 20px rgba(43,45,66,.05);
+[data-testid="stMultiSelect"] [role="group"]:focus-within {
+  border-color: var(--ink) !important; box-shadow: 0 0 0 3px rgba(28,28,31,.06);
 }
-label, [data-testid="stWidgetLabel"] p { font-weight: 700 !important; color: var(--ink) !important; }
+[data-testid="stWidgetLabel"] p { font-size: .74rem !important; font-weight: 700 !important; letter-spacing: .08em; text-transform: uppercase; color: var(--muted) !important; }
+[data-testid="stForm"] {
+  background: var(--card); border: 1px solid var(--line) !important; border-radius: 20px; padding: 1.4rem 1.2rem;
+  box-shadow: var(--shadow);
+}
 
-/* ---------- Tabs: scrollable pills ---------- */
+/* Radios as quiet segmented chips */
+[data-testid="stRadioGroup"] > div { gap: 6px !important; flex-wrap: wrap; }
+[data-testid="stRadioOption"] {
+  background: var(--card); border: 1px solid var(--line-2); border-radius: 999px; padding: 8px 16px 8px 12px !important;
+  margin: 0 !important; min-height: 40px; transition: all .15s ease;
+}
+[data-testid="stRadioOption"]:has(input:checked) { border-color: var(--ink); background: var(--ink); }
+[data-testid="stRadioOption"]:has(input:checked) p { color: #fff !important; }
+[data-testid="stRadioOption"] p { font-weight: 600; font-size: .9rem; }
+
+/* ---------- Tabs: segmented control ---------- */
 .stTabs [role="tablist"] {
-  gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 4px; margin-bottom: .6rem;
-  background: #fff; border: 1px solid var(--line) !important; border-radius: 999px; box-shadow: none !important;
+  gap: 2px; overflow-x: auto; scrollbar-width: none; padding: 4px; margin-bottom: 1rem;
+  background: #EEEAE3; border: 0 !important; border-radius: 14px; box-shadow: none !important;
 }
 .stTabs [role="tablist"]::-webkit-scrollbar { display: none; }
 .stTabs [role="tab"] {
-  height: 42px; padding: 0 14px; border-radius: 999px; white-space: nowrap; flex: none;
-  font-weight: 700; color: var(--muted); background: transparent; border: 0 !important; outline: none;
-  box-shadow: none !important;
+  height: 40px; padding: 0 14px; border-radius: 10px; white-space: nowrap; flex: 1 0 auto; justify-content: center;
+  color: var(--muted); background: transparent; border: 0 !important; outline: none; box-shadow: none !important;
+  transition: background .15s ease, color .15s ease;
 }
-.stTabs [role="tab"] p { font-size: .95rem; font-weight: 700; }
-.stTabs [role="tab"][aria-selected="true"] { background: var(--brand-soft) !important; color: var(--brand-dark) !important; }
-.stTabs [role="tab"]:focus-visible { box-shadow: 0 0 0 2px var(--brand) !important; }
+.stTabs [role="tab"] p { font-size: .88rem; font-weight: 600; }
+.stTabs [role="tab"]:hover { color: var(--ink); }
+.stTabs [role="tab"][aria-selected="true"] {
+  background: var(--card) !important; color: var(--ink) !important;
+  box-shadow: 0 1px 2px rgba(28,28,31,.06), 0 2px 8px -2px rgba(28,28,31,.08) !important;
+}
+.stTabs [role="tab"]:focus-visible { box-shadow: 0 0 0 2px var(--gold) !important; }
+.stTabs [role="tab"] > div ~ div, [data-testid^="stTabsScroll"] { display: none !important; }
 
 /* ---------- Header ---------- */
 .tt-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.tt-logo {
-  width: 46px; height: 46px; flex: none; border-radius: 14px; display: grid; place-items: center;
-  font-size: 1.5rem; background: linear-gradient(135deg, var(--sun), var(--brand));
-  box-shadow: 0 4px 12px rgba(240,96,93,.25);
+.tt-mono {
+  width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center;
+  background: var(--ink); color: #F3E7D3; font-family: 'Fraunces', serif; font-size: .95rem; font-weight: 500;
+  letter-spacing: .02em; box-shadow: inset 0 0 0 2px var(--ink), inset 0 0 0 3px rgba(243,231,211,.35);
 }
-.tt-brand-name { font-size: 1.25rem; font-weight: 600; line-height: 1.1; }
-.tt-brand-sub { color: var(--muted); font-size: .85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tt-brand-name { font-family: 'Fraunces', serif; font-size: 1.35rem; font-weight: 500; line-height: 1.15; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 480px) { .tt-brand-name { font-size: 1.15rem; } .tt-mono { width: 40px; height: 40px; font-size: .85rem; } }
+.tt-brand-sub { color: var(--muted); font-size: .8rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.st-key-topbar { padding-bottom: 14px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
 .st-key-topbar [data-testid="stHorizontalBlock"] { flex-wrap: nowrap !important; align-items: center; gap: 8px; }
 .st-key-topbar [data-testid="stColumn"] { min-width: 0 !important; }
 .st-key-topbar [data-testid="stColumn"]:not(:first-child) { flex: 0 0 auto !important; width: auto !important; }
-.st-key-topbar .stButton > button { min-height: 44px; padding: 0 12px; font-size: .9rem; }
+.st-key-topbar .stButton button { min-height: 40px; padding: 0 14px; font-size: .85rem; border-radius: 999px; }
 
 /* ---------- Login ---------- */
-.tt-hero { text-align: center; padding: 1.5rem 0 1rem; }
-.tt-hero .tt-logo { margin: 0 auto 12px; width: 72px; height: 72px; font-size: 2.3rem; border-radius: 22px; }
-.tt-hero h1 { font-size: 1.9rem !important; margin: 0 !important; padding: 0 !important; }
-.tt-hero p { color: var(--muted); margin: 4px 0 0; }
+.tt-hero { text-align: center; padding: 2.4rem 0 1.4rem; }
+.tt-hero .tt-mono { margin: 0 auto 18px; width: 68px; height: 68px; font-size: 1.35rem; }
+.tt-hero h1 { font-size: 2.2rem !important; margin: 6px 0 0 !important; padding: 0 !important; }
+.tt-hero p { color: var(--muted); margin: 6px 0 0; font-size: .95rem; }
 
 /* ---------- Task cards ---------- */
 [class*="st-key-card_"] {
-  background: var(--card); border: 1px solid var(--line) !important; border-left: 6px solid var(--medium) !important;
-  border-radius: var(--radius) !important; padding: 14px 14px 12px !important;
-  box-shadow: 0 4px 14px rgba(43,45,66,.05); gap: .6rem !important;
+  background: var(--card); border: 1px solid var(--line) !important; border-radius: var(--radius) !important;
+  padding: 16px 16px 14px 20px !important; box-shadow: var(--shadow); gap: .75rem !important; position: relative; overflow: hidden;
 }
-[class*="st-key-card_high"] { border-left-color: var(--high) !important; }
-[class*="st-key-card_low"] { border-left-color: var(--low) !important; }
-[class*="_done_"] { opacity: .72; border-left-color: #C9CCD6 !important; }
-.tt-title { font-size: 1.08rem; font-weight: 800; line-height: 1.3; margin-bottom: 8px; }
-.tt-title.done { text-decoration: line-through; color: var(--muted); }
-.tt-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+[class*="st-key-card_"]::before {
+  content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 3px 3px 0; background: var(--medium);
+}
+[class*="st-key-card_high"]::before { background: var(--high); }
+[class*="st-key-card_low"]::before { background: var(--low); }
+[class*="_done_"] { background: var(--tint); box-shadow: none; }
+[class*="_done_"]::before { background: var(--line-2) !important; }
+.tt-title { font-size: 1.04rem; font-weight: 700; line-height: 1.35; color: var(--ink); margin-bottom: 10px; }
+.tt-title.done { text-decoration: line-through; text-decoration-color: var(--faint); color: var(--muted); }
+.tt-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .tt-tag {
-  display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px;
-  font-size: .78rem; font-weight: 700; color: var(--ink); background: #F3F1F7; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px;
+  font-size: .74rem; font-weight: 700; letter-spacing: .01em; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--line); white-space: nowrap;
 }
-.tt-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--muted)); }
-.tt-tag.area { background: color-mix(in srgb, var(--c) 13%, #fff); }
-.tt-tag.prio-High { background: #FDE7E8; color: #B4232A; }
-.tt-tag.prio-Medium { background: #FFF1D6; color: #8F5800; }
-.tt-tag.prio-Low { background: #E2F5EA; color: #1C6E46; }
-.tt-tag.st-Doing { background: #E3F0FB; color: #1F5F92; }
-.tt-tag.st-Done { background: #E2F5EA; color: #1C6E46; }
-.tt-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--muted); font-size: .88rem; font-weight: 600; }
-.tt-meta .late { color: var(--high); font-weight: 800; }
-.tt-meta .today { color: var(--brand-dark); font-weight: 800; }
-.tt-alert { margin-top: 8px; padding: 7px 12px; border-radius: 12px; font-size: .88rem; font-weight: 700; }
-.tt-alert.red { background: #FDE7E8; color: #B4232A; }
-.tt-alert.amber { background: #FFF1D6; color: #8F5800; }
-.tt-note { margin-top: 8px; padding: 7px 12px; border-radius: 12px; background: #F7F4EF; color: var(--ink); font-size: .88rem; }
-.tt-done-by { margin-top: 8px; color: var(--mint); font-size: .85rem; font-weight: 700; }
-/* Keep card buttons side by side (2 per row) on phones instead of one long stack */
-[class*="st-key-card_"] [data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; flex-direction: row !important; gap: 8px !important; }
+.tt-tag .ms { font-size: .95rem; vertical-align: 0; }
+.tt-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c, var(--muted)); }
+.tt-tag.prio-High { background: var(--high-soft); border-color: transparent; color: var(--high); }
+.tt-tag.prio-Medium { background: var(--medium-soft); border-color: transparent; color: var(--medium); }
+.tt-tag.prio-Low { background: var(--low-soft); border-color: transparent; color: var(--low); }
+.tt-tag.prio-High .tt-dot { background: var(--high); }
+.tt-tag.prio-Medium .tt-dot { background: var(--medium); }
+.tt-tag.prio-Low .tt-dot { background: var(--low); }
+.tt-tag.st-Doing { background: var(--blue-soft); border-color: transparent; color: var(--blue); }
+.tt-tag.st-Done { background: var(--low-soft); border-color: transparent; color: var(--low); }
+.tt-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--muted); font-size: .84rem; font-weight: 500; }
+.tt-meta .ms { color: var(--faint); margin-right: 3px; }
+.tt-meta .late { color: var(--high); font-weight: 700; }
+.tt-meta .late .ms, .tt-meta .today .ms { color: inherit; }
+.tt-meta .today { color: var(--ink); font-weight: 700; }
+.tt-alert { margin-top: 10px; padding: 8px 12px; border-radius: 10px; font-size: .84rem; font-weight: 600; display: flex; gap: 8px; align-items: center; }
+.tt-alert.red { background: var(--high-soft); color: var(--high); }
+.tt-alert.amber { background: var(--medium-soft); color: #86651F; }
+.tt-note { margin-top: 10px; padding: 8px 12px; border-radius: 10px; background: var(--tint); border: 1px solid var(--line); color: var(--ink-2); font-size: .85rem; display: flex; gap: 8px; }
+.tt-note .ms { color: var(--faint); }
+.tt-done-by { margin-top: 10px; color: var(--low); font-size: .82rem; font-weight: 600; display: flex; gap: 6px; align-items: center; }
+/* Card buttons: two per row on phones, one row on desktop */
+[class*="st-key-card_"] [data-testid="stHorizontalBlock"] {
+  flex-wrap: wrap !important; flex-direction: row !important; gap: 8px !important;
+  padding-top: 14px; margin-top: 4px; border-top: 1px solid var(--line);
+}
 [class*="st-key-card_"] [data-testid="stColumn"] { flex: 1 1 calc(50% - 8px) !important; min-width: calc(50% - 8px) !important; }
 @media (min-width: 640px) {
   [class*="st-key-card_"] [data-testid="stColumn"] { flex: 1 1 0 !important; min-width: 0 !important; }
 }
 
-/* ---------- Summary pills ---------- */
-.tt-summary { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 12px; }
-.tt-pill { padding: 6px 12px; border-radius: 999px; background: #fff; border: 1px solid var(--line); font-weight: 700; font-size: .88rem; }
-.tt-pill.red { background: #FDE7E8; border-color: #F8C9CB; color: #B4232A; }
-.tt-empty { text-align: center; padding: 2rem 1rem; background: #fff; border: 1.5px dashed var(--line); border-radius: var(--radius); color: var(--muted); font-weight: 600; }
-.tt-empty .big { font-size: 2rem; display: block; margin-bottom: 6px; }
+/* ---------- Summary + empty ---------- */
+.tt-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 4px 0 14px; }
+.tt-summary .count { font-family: 'Fraunces', serif; font-size: 1.6rem; font-weight: 500; color: var(--ink); line-height: 1; }
+.tt-summary .lbl { color: var(--muted); font-size: .88rem; font-weight: 600; }
+.tt-summary .late { color: var(--high); font-size: .85rem; font-weight: 700; background: var(--high-soft); padding: 3px 10px; border-radius: 999px; }
+.tt-empty { text-align: center; padding: 2.2rem 1rem; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); color: var(--muted); font-weight: 500; font-size: .92rem; }
+.tt-empty .ms { display: block; margin: 0 auto 8px; font-size: 1.8rem; color: var(--gold); }
 
 /* ---------- Dashboard ---------- */
 .tt-kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 4px 0 6px; }
 @media (min-width: 640px) { .tt-kpis { grid-template-columns: repeat(4, 1fr); } }
-.tt-kpi { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; position: relative; overflow: hidden; }
-.tt-kpi::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 5px; background: var(--c); }
-.tt-kpi-label { color: var(--muted); font-size: .82rem; font-weight: 700; }
-.tt-kpi-num { font-size: 2.1rem; font-weight: 600; line-height: 1.1; margin-top: 4px; color: var(--ink); }
-.tt-kpi.alert { background: #FFF4F4; border-color: #F8C9CB; }
-.tt-kpi.alert .tt-kpi-num { color: #B4232A; }
-.tt-panel { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
-.tt-bar-row { display: grid; grid-template-columns: minmax(90px, 38%) 1fr 28px; align-items: center; gap: 10px; padding: 5px 0; }
-.tt-bar-label { font-size: .88rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tt-bar-track { height: 14px; border-radius: 4px; }
-.tt-bar { height: 100%; border-radius: 4px; background: var(--brand); min-width: 4px; }
-.tt-bar-row:hover .tt-bar { background: var(--brand-dark); }
-.tt-bar-val { text-align: right; font-weight: 800; font-size: .9rem; color: var(--ink); }
-.tt-table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.tt-kpi { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+.tt-kpi-label { color: var(--muted); font-size: .68rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; display: flex; align-items: center; gap: 6px; }
+.tt-kpi-label .ms { font-size: 1rem; color: var(--faint); }
+.tt-kpi-num { font-family: 'Fraunces', serif; font-size: 2.3rem; font-weight: 500; line-height: 1; margin-top: 12px; color: var(--ink); }
+.tt-kpi.alert .tt-kpi-num, .tt-kpi.alert .tt-kpi-label .ms { color: var(--high); }
+.tt-panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 16px; box-shadow: var(--shadow); }
+.tt-bar-row { display: grid; grid-template-columns: minmax(100px, 40%) 1fr 26px; align-items: center; gap: 12px; padding: 9px 0; }
+.tt-bar-row + .tt-bar-row { border-top: 1px solid var(--line); }
+.tt-bar-label { font-size: .86rem; font-weight: 600; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tt-bar-track { height: 8px; border-radius: 4px; background: #F1EDE6; }
+.tt-bar { height: 100%; border-radius: 4px; background: var(--ink); min-width: 4px; }
+.tt-bar-row:hover .tt-bar { background: var(--gold); }
+.tt-bar-val { text-align: right; font-weight: 700; font-size: .88rem; color: var(--ink); }
 .tt-table, .tt-table th, .tt-table td, .tt-table tr { border: 0 !important; background: transparent !important; }
-.tt-table th { text-align: right; color: var(--muted); font-size: .78rem; font-weight: 700; padding: 0 6px 8px; }
+.tt-table { width: 100%; border-collapse: collapse; font-size: .9rem; margin: 0 !important; }
+.tt-table th { text-align: right; color: var(--muted); font-size: .66rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 10px 6px 8px; }
 .tt-table th:first-child, .tt-table td:first-child { text-align: left; }
-.tt-table td { text-align: right; padding: 9px 6px; border-top: 1px solid var(--line) !important; font-weight: 700; }
-.tt-table td.late { color: #B4232A; }
-.tt-table td.zero { color: #B9BCC8; font-weight: 600; }
-.tt-list-item { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
+.tt-table td { text-align: right; padding: 11px 6px; border-top: 1px solid var(--line) !important; font-weight: 700; color: var(--ink); }
+.tt-table td:first-child { font-weight: 600; }
+.tt-table td.late { color: var(--high); }
+.tt-table td.zero { color: var(--faint); font-weight: 500; }
+.tt-list-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
 .tt-list-item:first-child { border-top: 0; }
-.tt-list-main { font-weight: 700; font-size: .92rem; }
-.tt-list-sub { color: var(--muted); font-size: .8rem; font-weight: 600; }
-.tt-list-side { white-space: nowrap; font-weight: 800; font-size: .85rem; }
-.tt-list-side.late { color: #B4232A; }
-.tt-list-side.ok { color: var(--mint); }
+.tt-list-main { font-weight: 600; font-size: .9rem; color: var(--ink); }
+.tt-list-sub { color: var(--muted); font-size: .78rem; font-weight: 500; margin-top: 2px; }
+.tt-list-side { white-space: nowrap; font-weight: 700; font-size: .78rem; padding: 3px 10px; border-radius: 999px; }
+.tt-list-side.late { color: var(--high); background: var(--high-soft); }
+.tt-list-side.ok { color: var(--low); background: var(--low-soft); }
 
-/* Radios as chunky chips (bigger tap area) */
-[data-testid="stRadioGroup"] > div { gap: 6px !important; flex-wrap: wrap; }
-[data-testid="stRadioOption"] {
-  background: #fff; border: 1.5px solid var(--line); border-radius: 999px; padding: 8px 14px 8px 10px !important;
-  margin: 0 !important; min-height: 40px;
-}
-[data-testid="stRadioOption"]:has(input:checked), [data-testid="stRadioOption"][data-selected] {
-  border-color: var(--brand); background: var(--brand-soft);
-}
-[data-testid="stAlert"] { border-radius: 14px; }
+[data-testid="stAlert"] { border-radius: 12px; }
+[data-testid="stPopoverBody"] { border-radius: 16px !important; border: 1px solid var(--line) !important; box-shadow: 0 20px 40px -16px rgba(28,28,31,.25) !important; }
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -254,6 +293,11 @@ st.markdown(CSS, unsafe_allow_html=True)
 
 def esc(text) -> str:
     return html.escape(str(text or ""))
+
+
+def ic(name: str) -> str:
+    """A clean line icon (Google Material Symbols)."""
+    return f'<span class="ms">{name}</span>'
 
 
 def area_color(area: str) -> str:
@@ -272,7 +316,7 @@ def show_html(*parts: str):
 
 
 def empty_state(icon: str, msg: str):
-    show_html(f'<div class="tt-empty"><span class="big">{icon}</span>{esc(msg)}</div>')
+    show_html(f'<div class="tt-empty">{ic(icon)}{esc(msg)}</div>')
 
 
 # ---------------------------------------------------------------
@@ -520,12 +564,12 @@ def render_task(t: dict, prefix: str, user: str, is_admin: bool):
     late = not done and due and due < today()
 
     with st.container(key=f"card_{prio.lower()}_{'done' if done else 'open'}_{key}"):
-        tags = [f'<span class="tt-tag prio-{prio}">{PRIORITY_ICON[prio]} {prio}</span>']
+        tags = [f'<span class="tt-tag prio-{prio}"><span class="tt-dot"></span>{prio}</span>']
         if t["area"]:
             tags.append(f'<span class="tt-tag area" style="--c:{area_color(t["area"])}">'
                         f'<span class="tt-dot"></span>{esc(t["area"])}</span>')
         if t["repeat"] in ("Daily", "Weekly", "Monthly"):
-            tags.append(f'<span class="tt-tag">🔁 {t["repeat"]}</span>')
+            tags.append(f'<span class="tt-tag">{ic("autorenew")}{t["repeat"]}</span>')
         if status in ("Doing", "Done"):
             tags.append(f'<span class="tt-tag st-{status}">{STATUS_LABEL[status]}</span>')
 
@@ -533,21 +577,21 @@ def render_task(t: dict, prefix: str, user: str, is_admin: bool):
         parts = [
             f'<div class="tt-title{" done" if done else ""}">{esc(t["title"])}</div>',
             f'<div class="tt-tags">{"".join(tags)}</div>',
-            f'<div class="tt-meta"><span>👤 {esc(t["assigned_to"] or "Unassigned")}</span>'
-            f'<span class="{due_cls}">📅 {nice_date(due)}</span></div>',
+            f'<div class="tt-meta"><span>{ic("person")}{esc(t["assigned_to"] or "Unassigned")}</span>'
+            f'<span class="{due_cls}">{ic("event")}{nice_date(due)}</span></div>',
         ]
         if late:
             days = (today() - due).days
-            parts.append(f'<div class="tt-alert red">⚠️ Overdue by {days} day{"s" if days > 1 else ""}</div>')
+            parts.append(f'<div class="tt-alert red">{ic("error")}Overdue by {days} day{"s" if days > 1 else ""}</div>')
         if status == "Waiting":
             since = parse_date(t["waiting_since"])
             days = (today() - since).days if since else 0
-            parts.append(f'<div class="tt-alert amber">⏳ Waiting on {esc(t["waiting_on"] or "someone")} '
+            parts.append(f'<div class="tt-alert amber">{ic("hourglass_top")}Waiting on {esc(t["waiting_on"] or "someone")} '
                          f'for {days} day{"s" if days != 1 else ""}</div>')
         if t["notes"]:
-            parts.append(f'<div class="tt-note">📝 {esc(t["notes"])}</div>')
+            parts.append(f'<div class="tt-note">{ic("notes")}<span>{esc(t["notes"])}</span></div>')
         if done:
-            parts.append(f'<div class="tt-done-by">✅ Done by {esc(t["done_by"])} at {esc(t["done_at"])}</div>')
+            parts.append(f'<div class="tt-done-by">{ic("check_circle")}Done by {esc(t["done_by"])} at {esc(t["done_at"])}</div>')
         show_html(*parts)
         if done:
             return
@@ -562,22 +606,22 @@ def render_task(t: dict, prefix: str, user: str, is_admin: bool):
             actions.append("edit")
         cols = dict(zip(actions, st.columns(len(actions))))
 
-        if cols["done"].button("✅ Done", key=f"{key}_done", type="primary"):
+        if cols["done"].button("Done", icon=":material/check:", key=f"{key}_done", type="primary"):
             complete_task(t, user)
             st.session_state.flash = f"Done: {t['title']}"
             st.rerun()
 
         if status == "To Do":
-            if cols["start"].button("▶️ Start", key=f"{key}_start"):
+            if cols["start"].button("Start", icon=":material/play_arrow:", key=f"{key}_start"):
                 update_fields("Tasks", tid, {"status": "Doing"})
                 st.rerun()
         elif status == "Waiting":
-            if cols["start"].button("▶️ Resume", key=f"{key}_resume"):
+            if cols["start"].button("Resume", icon=":material/play_arrow:", key=f"{key}_resume"):
                 update_fields("Tasks", tid, {"status": "Doing", "waiting_on": "", "waiting_since": ""})
                 st.rerun()
 
         if "wait" in cols:
-            with cols["wait"].popover("⏳ Waiting"):
+            with cols["wait"].popover(":material/schedule: Waiting"):
                 who = st.text_input("Waiting on whom or what?", key=f"{key}_who",
                                     placeholder="e.g. Ravi supplier, fabric delivery")
                 if st.button("Save", key=f"{key}_wait_save"):
@@ -586,7 +630,7 @@ def render_task(t: dict, prefix: str, user: str, is_admin: bool):
                     st.rerun()
 
         if "edit" in cols:
-            with cols["edit"].popover("✏️ Edit"):
+            with cols["edit"].popover(":material/edit: Edit"):
                 edit_form(t, key)
 
 
@@ -604,21 +648,21 @@ def edit_form(t: dict, key: str):
         due = st.date_input("Due date", parse_date(t["due_date"]) or today(), format="DD/MM/YYYY",
                             key=f"{key}_e_due")
         notes = st.text_area("Notes", t["notes"], key=f"{key}_e_notes")
-        if st.form_submit_button("💾 Save changes"):
+        if st.form_submit_button("Save changes", type="primary"):
             update_fields("Tasks", t["id"], {
                 "title": title.strip() or t["title"], "area": area, "assigned_to": assigned,
                 "priority": priority, "repeat": repeat, "due_date": due.isoformat(), "notes": notes,
             })
             st.rerun()
     sure = st.checkbox("Yes, delete this task", key=f"{key}_sure")
-    if st.button("🗑️ Delete task", key=f"{key}_delete", disabled=not sure):
+    if st.button("Delete task", icon=":material/delete:", key=f"{key}_delete", disabled=not sure):
         delete_task(t["id"])
         st.rerun()
 
 
 def render_list(df: pd.DataFrame, prefix: str, user: str, is_admin: bool, empty_msg: str, limit: int = 100):
     if df.empty:
-        empty_state("🎈", empty_msg)
+        empty_state("task_alt", empty_msg)
         return
     if len(df) > limit:
         st.caption(f"Showing first {limit} of {len(df)} tasks. Use the filters to narrow down.")
@@ -630,8 +674,9 @@ def render_list(df: pd.DataFrame, prefix: str, user: str, is_admin: bool, empty_
 # Screens
 # ---------------------------------------------------------------
 def login_screen():
-    show_html(f'<div class="tt-hero"><div class="tt-logo">🧸</div>'
-              f'<h1>{esc(APP_NAME)}</h1><p>{esc(BUSINESS_NAME)}</p></div>')
+    show_html(f'<div class="tt-hero"><div class="tt-mono">{MONOGRAM}</div>'
+              f'<div class="tt-eyebrow">{esc(BUSINESS_NAME)}</div>'
+              f'<h1>{esc(APP_NAME)}</h1><p>Sign in to see your tasks for today.</p></div>')
     people = active_people()
     if not people:
         st.error("No active users found. Open the Google Sheet, go to the Users tab and add one.")
@@ -658,9 +703,10 @@ def today_tab(tasks, user, is_admin):
     if scope == "My tasks":
         df = for_person(df, user)
     overdue = (df["_due"] < today()).sum()
-    pills = [f'<span class="tt-pill">📅 {len(df)} task{"s" if len(df) != 1 else ""} for today</span>']
+    pills = [f'<span class="count">{len(df)}</span>',
+             f'<span class="lbl">task{"s" if len(df) != 1 else ""} for today</span>']
     if overdue:
-        pills.append(f'<span class="tt-pill red">⚠️ {overdue} overdue</span>')
+        pills.append(f'<span class="late">{overdue} overdue</span>')
     show_html(f'<div class="tt-summary">{"".join(pills)}</div>')
     render_list(df, "today", user, is_admin, "Nothing due today. Check the All tab for upcoming work.")
 
@@ -700,7 +746,7 @@ def add_tab(user, is_admin):
                                    "Monthly repeats on the same date every month.")
         due = st.date_input("Due date", today(), format="DD/MM/YYYY")
         notes = st.text_area("Notes (optional)")
-        if st.form_submit_button("➕ Add task", type="primary"):
+        if st.form_submit_button("Add task", type="primary", icon=":material/add:"):
             if not title.strip():
                 st.error("Write the task name first.")
             else:
@@ -728,20 +774,20 @@ def dashboard_tab(tasks):
     waiting = open_df[open_df["status"] == "Waiting"]
 
     kpis = [
-        ("Open tasks", len(open_df), "var(--sky)", False),
-        ("Overdue", len(overdue), "var(--high)", len(overdue) > 0),
-        ("Done today", len(done_today), "var(--mint)", False),
-        ("Waiting", len(waiting), "var(--sun)", False),
+        ("Open", len(open_df), "radio_button_unchecked", False),
+        ("Overdue", len(overdue), "error", len(overdue) > 0),
+        ("Done today", len(done_today), "check_circle", False),
+        ("Waiting", len(waiting), "hourglass_top", False),
     ]
     show_html('<div class="tt-kpis">', *[
-        f'<div class="tt-kpi{" alert" if alert else ""}" style="--c:{c}">'
-        f'<div class="tt-kpi-label">{label}</div><div class="tt-kpi-num">{n}</div></div>'
-        for label, n, c, alert in kpis
+        f'<div class="tt-kpi{" alert" if alert else ""}">'
+        f'<div class="tt-kpi-label">{ic(icon)}{label}</div><div class="tt-kpi-num">{n}</div></div>'
+        for label, n, icon, alert in kpis
     ], '</div>')
 
     st.subheader("Open tasks by area")
     if open_df.empty:
-        empty_state("🎉", "No open tasks.")
+        empty_state("celebration", "No open tasks.")
     else:
         counts = open_df.groupby("area").size().sort_values(ascending=False)
         top = counts.max()
@@ -760,7 +806,7 @@ def dashboard_tab(tasks):
         "Done today": done_today.groupby("done_by").size(),
     }).fillna(0).astype(int)
     if team.empty:
-        empty_state("🌱", "No activity yet.")
+        empty_state("groups", "No activity yet.")
     else:
         rows = []
         for person, r in team.sort_values("Overdue", ascending=False).iterrows():
@@ -774,18 +820,18 @@ def dashboard_tab(tasks):
 
     st.subheader("Completed today")
     if done_today.empty:
-        empty_state("☕", "Nothing completed yet today.")
+        empty_state("coffee", "Nothing completed yet today.")
     else:
         show_html('<div class="tt-panel">', *[
             f'<div class="tt-list-item"><div><div class="tt-list-main">{esc(r["title"])}</div>'
             f'<div class="tt-list-sub">{esc(r["area"])} · {esc(r["done_by"])}</div></div>'
-            f'<div class="tt-list-side ok">✓ {esc(r["done_at"][-5:])}</div></div>'
+            f'<div class="tt-list-side ok">{esc(r["done_at"][-5:])}</div></div>'
             for _, r in done_today.iterrows()
         ], '</div>')
 
     st.subheader("Overdue list")
     if overdue.empty:
-        empty_state("🌈", "No overdue tasks.")
+        empty_state("verified", "No overdue tasks.")
     else:
         view = overdue.copy()
         view["late"] = view["_due"].apply(lambda d: (today() - d).days)
@@ -809,7 +855,7 @@ def team_tab():
         pin = st.text_input("PIN (4 digits, don't start with 0)", max_chars=8)
         role = st.radio("Role", ["staff", "admin"], horizontal=True,
                         help="Admin sees everyone's tasks, the dashboard and this Team tab.")
-        if st.form_submit_button("➕ Add person"):
+        if st.form_submit_button("Add person", icon=":material/person_add:"):
             if not name.strip() or not pin.strip():
                 st.error("Enter both name and PIN.")
             elif name.strip() in users["name"].tolist():
@@ -825,7 +871,7 @@ def team_tab():
         new_pin = st.text_input("New PIN (leave empty to keep)", max_chars=8)
         active = st.radio("Access", ["yes", "no"], horizontal=True,
                           help="Choose 'no' when a staff member leaves. Their task history stays.")
-        if st.form_submit_button("💾 Save"):
+        if st.form_submit_button("Save", type="primary"):
             fields = {"active": active}
             if new_pin.strip():
                 fields["pin"] = new_pin.strip()
@@ -838,7 +884,7 @@ def team_tab():
     st.caption(", ".join(area_list()))
     with st.form("add_area", clear_on_submit=True):
         new_area = st.text_input("New area", placeholder="e.g. Amazon, Photoshoot")
-        if st.form_submit_button("➕ Add area") and new_area.strip():
+        if st.form_submit_button("Add area", icon=":material/add:") and new_area.strip():
             if new_area.strip() in area_list():
                 st.error("This area already exists.")
             else:
@@ -872,11 +918,11 @@ def main():
     with st.container(key="topbar"):
         h1, h2, h3 = st.columns([4, 1, 1])
         h1.markdown(
-            f'<div class="tt-brand"><div class="tt-logo">🧸</div><div style="min-width:0">'
+            f'<div class="tt-brand"><div class="tt-mono">{MONOGRAM}</div><div style="min-width:0">'
             f'<div class="tt-brand-name">Hi, {esc(user)}</div>'
             f'<div class="tt-brand-sub">{today().strftime("%a %d %b")} · {esc(BUSINESS_NAME)}</div>'
             f'</div></div>', unsafe_allow_html=True)
-        if h2.button("🔄", key="refresh_btn", help="Refresh"):
+        if h2.button("", icon=":material/refresh:", key="refresh_btn", help="Refresh"):
             refresh()
             st.rerun()
         if h3.button("Log out", key="logout_btn"):
@@ -889,9 +935,10 @@ def main():
     tasks = prepared_tasks()
 
     if is_admin:
-        tabs = st.tabs(["📅 Today", "📋 All", "➕ Add", "⏳ Waiting", "📊 Dashboard", "👥 Team"])
+        tabs = st.tabs([":material/today: Today", ":material/list: All", ":material/add: Add", ":material/schedule: Waiting",
+                        ":material/insights: Dashboard", ":material/group: Team"])
     else:
-        tabs = st.tabs(["📅 Today", "📋 All", "➕ Add", "⏳ Waiting"])
+        tabs = st.tabs([":material/today: Today", ":material/list: All", ":material/add: Add", ":material/schedule: Waiting"])
 
     with tabs[0]:
         today_tab(tasks, user, is_admin)
